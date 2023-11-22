@@ -2,6 +2,8 @@
 """ Console Module """
 import cmd
 import sys
+import shlex
+import re
 from models.base_model import BaseModel
 from models.__init__ import storage
 from models.user import User
@@ -10,6 +12,7 @@ from models.state import State
 from models.city import City
 from models.amenity import Amenity
 from models.review import Review
+
 
 
 class HBNBCommand(cmd.Cmd):
@@ -118,13 +121,36 @@ class HBNBCommand(cmd.Cmd):
         if not args:
             print("** class name missing **")
             return
-        elif args not in HBNBCommand.classes:
+
+        class_name, *params = shlex.split(args)
+
+        if class_name not in HBNBCommand.classes:
             print("** class doesn't exist **")
             return
-        new_instance = HBNBCommand.classes[args]()
+
+        # Parse the parameters
+        parsed_params = self.parse_params(params)
+
+        # Create an instance of the specified class with parsed parameters
+        new_instance = HBNBCommand.classes[class_name](**parsed_params)
+
         storage.save()
         print(new_instance.id)
         storage.save()
+
+    def parse_params(self, params):
+        """Parse parameters into a dictionary"""
+        parsed_params = {}
+        for param in params:
+            match = re.match(r'^([a-zA-Z_][a-zA-Z0-9_]*)=(.*)$', param)
+            if match:
+                key, value = match.groups()
+                # Replace underscores with spaces in keys
+                key = key.replace('_', ' ')
+                # Unescape double quotes in values
+                value = value.replace('\\"', '"')
+                parsed_params[key] = value
+        return parsed_params
 
     def help_create(self):
         """ Help information for the create method """
